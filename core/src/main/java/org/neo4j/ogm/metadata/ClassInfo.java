@@ -19,13 +19,26 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.neo4j.ogm.annotation.*;
+import org.neo4j.ogm.annotation.GraphId;
+import org.neo4j.ogm.annotation.Index;
+import org.neo4j.ogm.annotation.Labels;
+import org.neo4j.ogm.annotation.NodeEntity;
+import org.neo4j.ogm.annotation.Property;
+import org.neo4j.ogm.annotation.Relationship;
+import org.neo4j.ogm.annotation.RelationshipEntity;
+import org.neo4j.ogm.annotation.Transient;
 import org.neo4j.ogm.classloader.MetaDataClassLoader;
 import org.neo4j.ogm.exception.MappingException;
 import org.neo4j.ogm.session.Neo4jException;
@@ -87,6 +100,8 @@ public class ClassInfo {
     private volatile boolean labelFieldMapped = false;
     private boolean primaryIndexFieldChecked = false;
 
+    private Class<?> underlyingClass = null;
+
     // todo move this to a factory class
     public ClassInfo(InputStream inputStream) throws IOException {
 
@@ -119,6 +134,7 @@ public class ClassInfo {
         methodsInfo = new MethodsInfo(dataInputStream, constantPool);
         annotationsInfo = new AnnotationsInfo(dataInputStream, constantPool);
         new ClassValidator(this).validate();
+        underlyingClass = loadUnderlyingClass();
     }
 
     /**
@@ -131,6 +147,7 @@ public class ClassInfo {
         this.className = name;
         this.hydrated = false;
         addSubclass(subclass);
+        this.underlyingClass = loadUnderlyingClass();
     }
 
     /**
@@ -1183,12 +1200,17 @@ public class ClassInfo {
         return ClassUtils.getType(typeParameterDescriptor);
     }
 
+
     /**
      * Get the underlying class represented by this ClassInfo
      *
      * @return the underlying class or null if it cannot be determined
      */
-    public Class getUnderlyingClass() {
+    public Class<?> getUnderlyingClass() {
+        return underlyingClass;
+    }
+
+    private Class loadUnderlyingClass() {
         try {
             return MetaDataClassLoader.loadClass(className);//Class.forName(className);
         } catch (ClassNotFoundException e) {

@@ -72,6 +72,7 @@ public class FieldInfo {
      */
     private CompositeAttributeConverter<?> compositeConverter;
     private String descriptorClass;
+    private boolean iterable;
 
 
     /**
@@ -101,6 +102,12 @@ public class FieldInfo {
                         this.name));
             }
 
+        }
+
+        try {
+            this.iterable = Iterable.class.isAssignableFrom(MetaDataClassLoader.loadClass(getCollectionClassname()));
+        } catch (ClassNotFoundException e) {
+            this.iterable = false;
         }
     }
 
@@ -223,16 +230,7 @@ public class FieldInfo {
     }
 
     public boolean isIterable() {
-        String descriptorClass = getCollectionClassname();
-        try {
-            Class descriptorClazz = MetaDataClassLoader.loadClass(descriptorClass);
-            if (Iterable.class.isAssignableFrom(descriptorClazz)) {
-                return true;
-            }
-        } catch (ClassNotFoundException e) {
-            //e.printStackTrace();
-        }
-        return false;
+        return this.iterable;
     }
 
     public boolean isParameterisedTypeOf(Class<?> type) {
